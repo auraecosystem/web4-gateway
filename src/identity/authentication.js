@@ -1,3 +1,27 @@
-import {timingSafeEqual} from "node:crypto";
-export function authenticateRequest(req,token){const h=req.headers.authorization??"";if(!h.startsWith("Bearer "))return null;const a=Buffer.from(h.slice(7)),b=Buffer.from(token);if(a.length!==b.length||!timingSafeEqual(a,b))return null;return Object.freeze({id:"gateway-client",method:"bearer",scopes:["gateway:connect","gateway:route"]});}
-export const requirePrincipal=token=>(req,res,next)=>{const p=authenticateRequest(req,token);if(!p)return res.status(401).json({error:"UNAUTHENTICATED"});req.principal=p;next();};
+import { timingSafeEqual } from "node:crypto";
+
+export function authenticateRequest(req, token) {
+  const header = req.headers.authorization ?? "";
+  if (!header.startsWith("Bearer ")) return null;
+
+  const supplied = Buffer.from(header.slice(7));
+  const expected = Buffer.from(token);
+  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+    return null;
+  }
+
+  return Object.freeze({
+    id: "gateway-client",
+    method: "bearer",
+    scopes: ["gateway:connect", "gateway:route"]
+  });
+}
+
+export function requirePrincipal(token) {
+  return (req, res, next) => {
+    const principal = authenticateRequest(req, token);
+    if (!principal) return res.status(401).json({ error: "UNAUTHENTICATED" });
+    req.principal = principal;
+    next();
+  };
+}

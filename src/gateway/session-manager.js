@@ -1,2 +1,35 @@
-import {randomBytes,createHash} from "node:crypto";
-export class SessionManager{#items=new Map();constructor({ttlSeconds=60,now=()=>Date.now()}={}){this.ttl=ttlSeconds*1000;this.now=now;}issue(principal){this.sweep();const ticket=randomBytes(32).toString("base64url"),key=createHash("sha256").update(ticket).digest("hex");this.#items.set(key,{principal,expires:this.now()+this.ttl});return{ticket,expiresIn:this.ttl/1000};}consume(ticket){if(typeof ticket!=="string"||ticket.length<32)return null;const key=createHash("sha256").update(ticket).digest("hex"),item=this.#items.get(key);this.#items.delete(key);return item&&item.expires>this.now()?item.principal:null;}sweep(){for(const[k,v]of this.#items)if(v.expires<=this.now())this.#items.delete(k);}}
+import { createHash, randomBytes } from "node:crypto";
+
+export class SessionManager {
+  #sessions = new Map();
+
+  constructor({ ttlSeconds = 60, now = () => Date.now() } = {}) {
+    this.ttlMs = ttlSeconds * 1000;
+    this.now = now;
+  }
+
+  issue(principal) {
+    this.sweep();
+    const ticket = randomBytes(32).toString("base64url");
+    const key = createHash("sha256").update(ticket).digest("hex");
+    this.#sessions.set(key, {
+      principal,
+      expiresAt: this.now() + this.ttlMs
+    });
+    return { ticket, expiresIn: this.ttlMs / 1000 };
+  }
+
+  consume(ticket) {
+    if (typeof ticket !== "string" || ticket.length < 32) return null;
+    const key = createHash("sha256").update(ticket).digest("hex");
+    const session = this.#sessions.get(key);
+    this.#sessions.delete(key);
+    return session && session.expiresAt > this.now() ? session.principal : null;
+  }
+
+  sweep() {
+    for (const [key, session] of this.#sessions) {
+      if (session.expiresAt <= this.now()) this.#sessions.delete(key);
+    }
+  }
+}

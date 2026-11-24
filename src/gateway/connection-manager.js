@@ -1,2 +1,37 @@
-import {randomUUID} from "node:crypto";import{WebSocket}from"ws";
-export class ConnectionManager{#items=new Map();add(socket,principal){const id=randomUUID();this.#items.set(id,{socket,principal});return id;}get(id){return this.#items.get(id)??null;}remove(id){return this.#items.delete(id);}sendTo(id,data){const x=this.#items.get(id);if(!x||x.socket.readyState!==WebSocket.OPEN)return false;x.socket.send(JSON.stringify(data));return true;}get size(){return this.#items.size;}closeAll(){for(const x of this.#items.values())x.socket.close(1001,"Gateway shutting down");}}
+import { randomUUID } from "node:crypto";
+import { WebSocket } from "ws";
+
+export class ConnectionManager {
+  #connections = new Map();
+
+  add(socket, principal) {
+    const id = randomUUID();
+    this.#connections.set(id, { socket, principal });
+    return id;
+  }
+
+  get(id) {
+    return this.#connections.get(id) ?? null;
+  }
+
+  remove(id) {
+    return this.#connections.delete(id);
+  }
+
+  sendTo(id, message) {
+    const entry = this.#connections.get(id);
+    if (!entry || entry.socket.readyState !== WebSocket.OPEN) return false;
+    entry.socket.send(JSON.stringify(message));
+    return true;
+  }
+
+  get size() {
+    return this.#connections.size;
+  }
+
+  closeAll() {
+    for (const { socket } of this.#connections.values()) {
+      socket.close(1001, "Gateway shutting down");
+    }
+  }
+}
