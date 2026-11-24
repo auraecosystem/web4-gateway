@@ -1,6 +1,6 @@
-For Web4, I would upgrade this beyond a conventional Express.js server. The goal should be a **Web4-native application gateway** that supports traditional HTTP applications while preparing for decentralized identity, trust-aware requests, agent communication, MCP integrations, and blockchain connectivity.
+>For Web4, I would upgrade this beyond a conventional Express.js server. The goal should be a **Web4-native application gateway** that supports traditional HTTP applications while preparing for decentralized identity, trust-aware requests, agent communication, MCP integrations, and blockchain connectivity.
 
-I'd retain Express.js as the HTTP foundation rather than pretending Express alone implements Web4.
+>I'd retain Express.js as the HTTP foundation rather than pretending Express alone implements Web4.
 
 # **Web4 Application Gateway —&#x20;**`app.js`
 
@@ -337,3 +337,48 @@ npm install --save-dev nodemon vitest supertest
 This is a Web4-ready gateway foundation, not yet a complete implementation of DID, LCT, trust tensors, MCP or A2A.
 
 **My recommendation:** Make this the foundation of a reusable `Web4 Gateway Runtime`, so your Web4 applications can share one security, identity, trust and protocol-integration architecture rather than rebuilding those capabilities in every application.
+
+I’ll use **NGINX** as the reference load balancer for `web4-gateway`, with TLS termination at the edge and WebSocket traffic forwarded to private backend instances.
+
+
+
+Implementation committed
+
+Draft PR — not merged
+
+
+
+I created the initial Web4 Gateway implementation in your GitHub repository.
+
+**Pull request:** [#1 — Add authenticated WebSocket gateway with NGINX TLS termination](https://github.com/auraecosystem/web4-gateway/pull/1?utm_source=chatgpt.com)
+
+### **What was added**
+
+| Component             | Implementation                                         |
+| --------------------- | ------------------------------------------------------ |
+| Gateway runtime       | Node.js + WebSocket (`ws`)                             |
+| Reverse proxy         | NGINX                                                  |
+| TLS                   | TLS 1.2 / 1.3 termination                              |
+| Authentication        | Bearer-token verification                              |
+| Security              | Origin allowlist, payload limits, handshake throttling |
+| Connection management | Connection lifecycle and heartbeat                     |
+| Routing               | Point-to-point message delivery                        |
+| Deployment            | Dockerfile and Docker Compose                          |
+| Tests                 | Configuration and message-routing tests                |
+| Documentation         | Setup, protocol and deployment guide                   |
+
+**Branch:** `feat/nginx-websocket-gateway`
+
+**12 files changed**, 494 additions.
+
+### **Important outstanding work**
+
+1. Run automated tests and verify the Docker build.
+2. Test actual NGINX-to-WebSocket upgrade behavior.
+3. Implement short-lived browser credentials.
+4. Add shared session state and message transport before horizontal scaling.
+5. Configure real domain names and TLS certificates.
+
+**Validation status:** Files were committed and the draft PR was opened. Tests and deployment have not been executed or verified. The PR remains unmerged.
+
+The next engineering milestone should be end-to-end testing of the complete `wss:// → NGINX → Web4 Gateway` connection.
