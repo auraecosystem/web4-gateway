@@ -1,0 +1,2 @@
+import test from"node:test";import assert from"node:assert/strict";import{SessionManager}from"../src/gateway/session-manager.js";
+test("session tickets are one-use and expire",()=>{let now=0;const s=new SessionManager({ttlSeconds:1,now:()=>now}),p={id:"x"};const a=s.issue(p);assert.deepEqual(s.consume(a.ticket),p);assert.equal(s.consume(a.ticket),null);const b=s.issue(p);now=1001;assert.equal(s.consume(b.ticket),null)});

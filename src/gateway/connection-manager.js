@@ -1,0 +1,2 @@
+import {randomUUID} from "node:crypto";import{WebSocket}from"ws";
+export class ConnectionManager{#items=new Map();add(socket,principal){const id=randomUUID();this.#items.set(id,{socket,principal});return id;}get(id){return this.#items.get(id)??null;}remove(id){return this.#items.delete(id);}sendTo(id,data){const x=this.#items.get(id);if(!x||x.socket.readyState!==WebSocket.OPEN)return false;x.socket.send(JSON.stringify(data));return true;}get size(){return this.#items.size;}closeAll(){for(const x of this.#items.values())x.socket.close(1001,"Gateway shutting down");}}
