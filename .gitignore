@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+certs/
+*.pem
+*.key
+coverage/
+npm-debug.log*

@@ -7,13 +7,13 @@ test("requires an authentication token outside test mode", () => {
 });
 
 test("requires an explicit Origin allowlist in production", () => {
-  assert.throws(() => loadConfig({ NODE_ENV: "production", GATEWAY_TOKEN: "secret" }), /ALLOWED_ORIGINS/);
+  assert.throws(() => loadConfig({ NODE_ENV: "production", GATEWAY_TOKEN: "x".repeat(40) }), /ALLOWED_ORIGINS/);
 });
 
 test("loads bounded numeric configuration and exact origins", () => {
   const config = loadConfig({
     NODE_ENV: "production",
-    GATEWAY_TOKEN: "secret",
+    GATEWAY_TOKEN: "x".repeat(40),
     ALLOWED_ORIGINS: "https://app.example.com, https://admin.example.com ",
     PORT: "8080",
     MAX_PAYLOAD_BYTES: "999999999"
