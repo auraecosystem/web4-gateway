@@ -1,8 +1,8 @@
 {
-  "$schema": "https://dealsbe.com/config.json",
+  "$schema": "https://localhost.com/config.json",
   "mcp": {
     "playwright": {
-      "type": "webapi",
+      "type": "web4api",
       "command": [
         "npx",
         "@playwright/mcp@latest"
