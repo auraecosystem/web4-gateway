@@ -1,7 +1,7 @@
-import http from "node:http";
-import { WebSocketServer } from "ws";
 import { loadConfig } from "./config/index.js";
 import { createApp } from "./app.js";
+import { createHttpServer } from "./server/http-server.js";
+import { attachWebSocketServer } from "./server/websocket-server.js";
 import { ConnectionManager } from "./gateway/connection-manager.js";
 import { SessionManager } from "./gateway/session-manager.js";
 import { MessageRouter } from "./gateway/message-router.js";
@@ -19,67 +19,8 @@ export function buildGateway(config = loadConfig()) {
   const audit = new AuditLog();
   const router = new MessageRouter({ connections, trustPolicy: trust, maxPayload: config.maxPayload });
   const app = createApp({ config, connections, sessions, trust, agents, metrics, audit });
-  const server = http.createServer(app);
-  const wss = new WebSocketServer({
-    noServer: true,
-    maxPayload: config.maxPayload,
-    perMessageDeflate: false
-  });
-
-  server.on("upgrade", (req, socket, head) => {
-    const reject = (status, reason) => {
-      socket.write(`HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
-      socket.destroy();
-    };
-
-    let url;
-    try {
-      url = new URL(req.url, "http://gateway.internal");
-    } catch {
-      return reject(400, "Bad Request");
-    }
-    if (url.pathname !== "/ws") return reject(404, "Not Found");
-
-    const origin = req.headers.origin;
-    if (config.allowedOrigins.length &&
-        (!origin || !config.allowedOrigins.includes(origin))) {
-      return reject(403, "Forbidden");
-    }
-
-    const principal = sessions.consume(url.searchParams.get("ticket"));
-    if (!principal) return reject(401, "Unauthorized");
-
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, principal));
-  });
-
-  wss.on("connection", (ws, principal) => {
-    const connectionId = connections.add(ws, principal);
-    metrics.connected();
-    audit.record("websocket.connected", { connectionId, subject: principal.id });
-    ws.isAlive = true;
-
-    ws.on("pong", () => { ws.isAlive = true; });
-    ws.on("message", (raw) => {
-      metrics.message();
-      const result = router.route({ raw, senderId: connectionId, principal });
-      if (result.error) {
-        metrics.rejected();
-        ws.send(JSON.stringify({ type: "error", code: result.error }));
-      } else if (result.response) {
-        ws.send(JSON.stringify(result.response));
-      }
-    });
-    ws.on("close", () => {
-      connections.remove(connectionId);
-      metrics.disconnected();
-      audit.record("websocket.disconnected", { connectionId });
-    });
-    ws.on("error", (error) => {
-      audit.record("websocket.error", { connectionId, message: error.message });
-      connections.remove(connectionId);
-    });
-    ws.send(JSON.stringify({ type: "connected", connectionId, subject: principal.id }));
-  });
+  const server = createHttpServer(app);
+  const wss = attachWebSocketServer({ server, config, sessions, connections, router, metrics, audit });
 
   const heartbeat = setInterval(() => {
     for (const client of wss.clients) {
