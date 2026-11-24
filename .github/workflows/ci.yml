@@ -16,3 +16,18 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run check
+      - name: Validate Compose configuration
+        env:
+          GATEWAY_TOKEN: ci-test-token-that-is-at-least-thirty-two-characters
+          ALLOWED_ORIGINS: https://client.example
+        run: docker compose config --quiet
+      - name: Build gateway image
+        run: docker build --tag web4-gateway:ci .
+      - name: Validate NGINX configuration
+        run: |
+          mkdir -p certs
+          openssl req -x509 -nodes -newkey rsa:2048 -keyout certs/privkey.pem -out certs/fullchain.pem -days 1 -subj "/CN=gateway.example.com"
+          docker run --rm \
+            -v "$PWD/deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$PWD/certs:/etc/nginx/certs:ro" \
+            nginx:1.27-alpine nginx -t
