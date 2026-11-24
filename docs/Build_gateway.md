@@ -381,4 +381,150 @@ I created the initial Web4 Gateway implementation in your GitHub repository.
 
 **Validation status:** Files were committed and the draft PR was opened. Tests and deployment have not been executed or verified. The PR remains unmerged.
 
-The next engineering milestone should be end-to-end testing of the complete `wss:// → NGINX → Web4 Gateway` connection.
+>The next engineering milestone should be end-to-end testing of the complete `wss:// → NGINX → Web4 Gateway` connection.
+
+These two structures describe complementary parts of the same system. I recommend **combining them into one modular Web4 Gateway architecture**, rather than maintaining two separate application structures.
+
+The first structure defines the Web4 application layer: Express, APIs, identity, trust, agents, blockchain and adapters.
+
+The second defines the gateway infrastructure: HTTP/WebSocket servers, connection management, sessions, authentication, routing and observability.
+
+## **Recommended unified architecture**
+
+```
+web4-gateway/
+├── app.js
+├── server.js
+├── package.json
+├── README.md
+├── .env.example
+├── Dockerfile
+│
+├── config/
+│   └── index.js
+│
+├── src/
+│   ├── server/
+│   │   ├── http-server.js
+│   │   └── websocket-server.js
+│   │
+│   ├── gateway/
+│   │   ├── connection-manager.js
+│   │   ├── message-router.js
+│   │   └── session-manager.js
+│   │
+│   ├── identity/
+│   │   ├── authentication.js
+│   │   ├── identity-service.js
+│   │   └── identity-resolver.js
+│   │
+│   ├── trust/
+│   │   ├── trust-policy.js
+│   │   ├── trust-engine.js
+│   │   └── trust-evaluator.js
+│   │
+│   ├── agents/
+│   │   ├── agent-router.js
+│   │   ├── agent-registry.js
+│   │   └── agent-discovery.js
+│   │
+│   ├── blockchain/
+│   │   ├── blockchain-service.js
+│   │   └── chain-registry.js
+│   │
+│   ├── discovery/
+│   │   ├── service-discovery.js
+│   │   └── well-known.js
+│   │
+│   ├── adapters/
+│   │   ├── did/
+│   │   ├── lct/
+│   │   ├── mcp/
+│   │   └── a2a/
+│   │
+│   ├── middleware/
+│   │   ├── security.js
+│   │   ├── identity.js
+│   │   ├── trust.js
+│   │   ├── request-context.js
+│   │   ├── proxy-verification.js
+│   │   ├── rate-limit.js
+│   │   └── error-handler.js
+│   │
+│   └── observability/
+│       ├── metrics.js
+│       └── audit.js
+│
+├── routes/
+│   ├── index.js
+│   ├── users.js
+│   └── api/
+│       ├── identity.js
+│       ├── trust.js
+│       ├── agents.js
+│       ├── mcp.js
+│       └── blockchain.js
+│
+├── views/
+├── public/
+│
+├── deploy/
+│   ├── nginx.conf
+│   └── docker-compose.yml
+│
+└── tests/
+    ├── websocket.test.js
+    ├── proxy.test.js
+    ├── security.test.js
+    ├── identity.test.js
+    ├── trust.test.js
+    └── integration.test.js
+```
+
+## **Architectural responsibilities**
+
+Transport layer
+
+**NGINX + HTTP/WebSocket servers**
+
+TLS termination, HTTP requests, WebSocket upgrades and connection lifecycle.
+
+Gateway layer
+
+**Connection, session and message management**
+
+Client sessions, routing, delivery, reconnection and rate limiting.
+
+Intelligence and trust layer
+
+**Identity + Trust + Agents**
+
+DID/LCT resolution, identity authentication, trust evaluation and agent coordination.
+
+Integration layer
+
+**MCP + A2A + Blockchain adapters**
+
+Protocol interoperability and external system connectivity through controlled adapters.
+
+Application layer
+
+**Express routes + services**
+
+REST APIs, discovery endpoints, users and application functionality.
+
+## **Important architectural decisions**
+
+1. `app.js` creates and configures the Express application.
+2. `server.js` creates the HTTP server and attaches the WebSocket server.
+3. Both HTTP and WebSocket traffic share the same identity and trust services.
+4. Adapters implement protocols; they must not become the source of truth for identity or trust.
+5. Trust evaluation is independent of authentication. An authenticated identity is not automatically trusted.
+6. NGINX remains the public TLS boundary.
+7. The gateway core should remain independent of any particular blockchain or agent framework.
+
+**My recommendation:** retain the `src/` architecture as the gateway's core and add the Express application layer around it. Do not duplicate identity, trust, routing or authentication implementations.
+
+This gives Web4 Gateway a coherent foundation for HTTP APIs, WebSockets, DID/LCT, MCP, A2A and blockchain integrations.
+
+The existing draft PR contains the initial gateway implementation, not this complete expanded architecture. I can apply this unified structure to PR #1 while preserving the existing functionality.
